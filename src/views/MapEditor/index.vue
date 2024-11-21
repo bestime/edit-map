@@ -41,8 +41,9 @@
       margin: 10px 0 0 0;
       padding: 0;
       list-style: none;
+      align-items: center;
       b {
-        width: 60px;
+        width: 80px;
         flex-shrink: 0;
         padding: 0;
         line-height: normal;
@@ -72,8 +73,10 @@
       <div class="map-root" ref="map-ref"></div>
       <div class="f2-rig" >
         <div v-if="state.currentEditGeo">
-          <el-button @click="onSaveGeometry">保存</el-button>
-          <el-button @click="onDeleteGeometry">删除</el-button>
+          <el-button @click="onSaveGeometry" type="primary">保存</el-button>
+          <el-button type="warning" @click="toExportCurrentItem">单体导出</el-button>
+          <el-button @click="onDeleteGeometry" type="danger">删除</el-button>
+
         </div>
         
         <ul class="info" v-if="state.currentEditGeo">
@@ -83,7 +86,11 @@
           </li>
           <li>
             <b>ID</b>
-            <el-input v-model="state.activeGeoInfo.id"/>
+            <el-input v-model="state.activeGeoInfo.id" disabled/>
+          </li>
+          <li>
+            <b>所属分组</b>
+            <el-input v-model="state.activeGeoInfo.groupName"/>
           </li>
           <li>
             <b>名字</b>
@@ -113,6 +120,7 @@ interface IState {
   mapBackImageUrl: string,
   activeGeoInfo: {
     name: string,
+    groupName: string,
     id: string
     coordinates: number[]
   }
@@ -137,6 +145,7 @@ const state = reactive<IState>({
   mapBackImageUrl: serverURL('@local', '/static/images/guan_wang.png'),
   typeList: getDrawTypeList(),
   activeGeoInfo: {
+    groupName: '',
     name: '',
     id: '',
     coordinates: []
@@ -209,6 +218,7 @@ function enableEditMode () {
       state.currentEditGeo = ev.owner
       state.activeGeoInfo.name = trim(ev.owner.properties.name)
       state.activeGeoInfo.id = trim(ev.owner.properties.id)
+      state.activeGeoInfo.groupName = trim(ev.owner.properties.groupName)
       const ct = ev.owner.getCenter()
       state.activeGeoInfo.coordinates = [ct.x, ct.y]
     }
@@ -233,11 +243,8 @@ function onDeleteGeometry () {
 function onSaveGeometry () {
   if(state.currentEditGeo) {
     state.currentEditGeo.endEdit()
-    Object.assign(state.currentEditGeo.properties, {
-      name: state.activeGeoInfo.name
-    })
+    Object.assign(state.currentEditGeo.properties, state.activeGeoInfo)
     state.currentEditGeo = undefined
-    
   }
 }
 
@@ -279,7 +286,7 @@ function initMap () {
     forceRenderOnRotating: true
   }).addTo(iMap);
   imgLayer = new ImageLayer('bg-img', [], {
-    opacity: 0.2,
+    opacity: 0.5,
     forceRenderOnMoving: true,
     forceRenderOnZooming: true,
     forceRenderOnRotating: true
@@ -312,7 +319,7 @@ function initMap () {
       url : state.mapBackImageUrl,
       // [左上角，右下角]
       extent: [
-      114.5230378403939, 38.808170851883125,
+      114.5230378403939, 38.799170851883125,
       123.0492214375, 33.91946401318846
       ],
       opacity : 1
@@ -320,6 +327,13 @@ function initMap () {
   ])
 }
 
+
+function toExportCurrentItem () {
+  if(!state.currentEditGeo) return;
+  Object.assign(state.currentEditGeo.properties, state.activeGeoInfo)
+  const v = state.currentEditGeo.toGeoJSON()
+  console.log("单体导出", v)
+}
 
 
 
