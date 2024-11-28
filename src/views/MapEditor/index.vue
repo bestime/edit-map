@@ -75,6 +75,7 @@
         <div v-if="state.currentEditGeo">
           <el-button @click="onSaveGeometry" type="primary">保存</el-button>
           <el-button type="warning" @click="toExportCurrentItem">单体导出</el-button>
+          <el-button type="warning" @click="toExportByName">按名字导出</el-button>
           <el-button @click="onDeleteGeometry" type="danger">删除</el-button>
 
         </div>
@@ -105,7 +106,7 @@
 </template>
 
 <script setup lang="ts">
-import { Map, TileLayer, DrawTool, ImageLayer,type HandlerFnResultType, VectorLayer, LineString, Marker, GeoJSON, type Geometries, Polygon } from 'maptalks'
+import { Map, MultiLineString, DrawTool, ImageLayer,type HandlerFnResultType, VectorLayer, LineString, Marker, GeoJSON, type Geometries, Polygon, Geometry } from 'maptalks'
 import { onMounted, onUnmounted, reactive, useTemplateRef } from 'vue';
 import type { TDrawTypeKeys } from './lib'
 import { getDrawTypeList, loadOldData } from './lib'
@@ -286,7 +287,7 @@ function initMap () {
     forceRenderOnRotating: true
   }).addTo(iMap);
   imgLayer = new ImageLayer('bg-img', [], {
-    opacity: 0.5,
+    opacity: 0.2,
     forceRenderOnMoving: true,
     forceRenderOnZooming: true,
     forceRenderOnRotating: true
@@ -305,7 +306,7 @@ function initMap () {
     const gmes = GeoJSON.toGeometry(v.data)
     gmes.forEach(function (item: Polygon) {
       item.updateSymbol({
-        lineColor: 'red',
+        lineColor: 'black',
         lineWidth: 2
       })
     })
@@ -333,6 +334,45 @@ function toExportCurrentItem () {
   Object.assign(state.currentEditGeo.properties, state.activeGeoInfo)
   const v = state.currentEditGeo.toGeoJSON()
   console.log("单体导出", v)
+}
+
+function toExportByName () {
+  if(!state.currentEditGeo) return;
+  Object.assign(state.currentEditGeo.properties, state.activeGeoInfo)
+  const name = state.currentEditGeo.properties.name
+  const gpName = state.currentEditGeo.properties.groupName
+  const mutis: Geometry[] = []
+  drawLayer?.forEach(function (item) {
+    if(item.properties.name === name && item.properties.groupName === gpName) {
+      mutis.push(item)
+    }
+  })
+  let gpType = mutis.length>1 ? 'MultiLineString' : 'LineString'
+  let coordinates = mutis.reduce(function (t, item) {
+    const d = item.toGeoJSON()
+    if(gpType === 'LineString') {
+      t = d.geometry.coordinates
+    } else if(gpType === 'MultiLineString'){
+      t = t.concat([d.geometry.coordinates])
+    }
+    return t
+  }, [] as any[])
+
+  const feature = {
+    geometry: {
+      type: gpType,
+      coordinates
+    },
+    properties: {
+      groupName: state.currentEditGeo.properties.groupName,
+      name: state.currentEditGeo.properties.name,
+    },
+
+  }
+
+  console.log("coordinates", feature)
+  
+  
 }
 
 

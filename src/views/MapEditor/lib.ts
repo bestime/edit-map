@@ -30,10 +30,10 @@ export async function loadOldData (layer: VectorLayer) {
     requestLocalFile<any>('/static/json/shand-points.json'),
   ])
   const lineFeatures = lineRes.data.data.map(function (item: any) {
-    const coordinates = _Array(item.pointsStr)      
+    const coordinates = _Array(item.pointsStr)
     return {
       type: "Feature",
-      geometry: {
+      geometry: item.geometry ? item.geometry : {
         type: 'LineString',
         coordinates
       },
@@ -74,16 +74,16 @@ export async function loadOldData (layer: VectorLayer) {
 
 
   const geojson = {
-    features: [lineFeatures, pointFeatures].flat(),
+    features: [lineFeatures].flat(),
     type: 'FeatureCollection'
   }
   console.log("res", geojson)
   const gmes = GeoJSON.toGeometry(geojson)
   gmes.forEach(function (item: Geometry) {
     console.log("item.type", item.type)
-    if(item.type === 'LineString') {
+    if(item.type === 'LineString' || item.type === 'MultiLineString') {
       item.updateSymbol({
-        lineColor: 'yellow',
+        lineColor: 'red',
         lineWidth: 2
       })
     } else if(item.type === 'Point') {
